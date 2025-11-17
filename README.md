@@ -63,7 +63,7 @@ pip install -r requirements.txt
 
 1. Open the notebook in Google Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/[seu-usuario]/sindy-geochemical-analysis/blob/main/sindy_analysis.ipynb)
 
-2. Upload the `DATA_IRON_ONLY.csv` file when prompted
+2. Upload the `DATA.csv` file when prompted
 
 3. Run all cells sequentially
 
@@ -73,7 +73,7 @@ pip install -r requirements.txt
 jupyter notebook sindy_analysis.ipynb
 ```
 
-Ensure the `DATA_IRON_ONLY.csv` file is in the same directory as the notebook.
+Ensure the `DATA.csv` file is in the same directory as the notebook.
 
 ## Input Data
 
@@ -123,7 +123,7 @@ The code generates:
 sindy-geochemical-analysis/
 │
 ├── sindy_analysis.ipynb          # Main Jupyter notebook
-├── DATA_IRON_ONLY.csv            # Input dataset
+├── DATA.csv            # Input dataset
 ├── requirements.txt              # Python dependencies
 ├── README.md                     # This file
 ├── LICENSE                       # License information
