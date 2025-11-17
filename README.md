@@ -123,7 +123,7 @@ The code generates:
 sindy-geochemical-analysis/
 │
 ├── sindy_analysis.ipynb          # Main Jupyter notebook
-├── DATA.csv            # Input dataset
+├── DATA.csv                      # Input dataset
 ├── requirements.txt              # Python dependencies
 ├── README.md                     # This file
 ├── LICENSE                       # License information
