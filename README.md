@@ -28,7 +28,6 @@ The code implements a data-driven approach to identify nonlinear dynamical syste
 Key features:
 - Butterworth filtering for noise reduction with systematic parameter testing
 - SINDy implementation using Kalman-smoothed derivatives
-- Polynomial feature library (degree 2) for equation discovery
 - Sparse regression (STLSQ) for parsimonious model selection
 - Forward simulation and validation against observations
 
@@ -102,7 +101,6 @@ Ensure the `DATA.csv` file is in the same directory as the notebook.
 
 3. **SINDy Model**
    - Differentiation: Kalman smoother (α=0.3)
-   - Feature library: Polynomial (degree 2, no bias)
    - Optimizer: STLSQ (threshold=1e-6)
    - Integration: solve_ivp
 
