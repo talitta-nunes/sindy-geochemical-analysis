@@ -1,7 +1,7 @@
 # Core dependencies for SINDy Geochemical Analysis
 
 # PySINDy and numerical computing
-pysindy>=1.7.5
+pysindy==1.7.5
 numpy>=1.21.0,<2.0.0
 scipy>=1.7.0
 
