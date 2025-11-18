@@ -9,13 +9,6 @@
 
 This repository contains the code and data for discovering governing equations from Ordovician geochemical proxy data using Sparse Identification of Nonlinear Dynamics (SINDy).
 
-## Citation
-
-If you use this code or data in your research, please cite:
-
-```
-[Manoel et al. (2025). Data-Driven Biogeochemical Dynamics: Extracting Governing Equations from Complex Geological Datasets. Computers & Geosciences]
-```
 
 ## Description
 
