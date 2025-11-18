@@ -60,7 +60,7 @@ pip install -r requirements.txt
 
 ### Running in Google Colab (Recommended)
 
-1. Open the notebook in Google Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/[seu-usuario]/sindy-geochemical-analysis/blob/main/sindy_analysis.ipynb)
+1. Open the notebook in Google Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/[seu-usuario]/sindy-geochemical-analysis/blob/main/sindy_butterworth_age_intervals.py)
 
 2. Upload the `DATA.csv` file when prompted
 
@@ -120,18 +120,18 @@ The code generates:
 ```
 sindy-geochemical-analysis/
 │
-├── sindy_analysis.ipynb          # Main Jupyter notebook
-├── DATA.csv                      # Input dataset
-├── requirements.txt              # Python dependencies
-├── README.md                     # This file
-├── LICENSE                       # License information
-└── figures/                      # Output plots (generated)
+├── sindy_butterworth_age_intervals.py          # Main Jupyter notebook
+├── DATA.csv                                    # Input dataset
+├── requirements.txt                            # Python dependencies
+├── README.md                                   # This file
+├── LICENSE                                     # License information
+└── figures/                                    # Output plots (generated)
 ```
 
 ## Dependencies
 
 Main libraries:
-- `pysindy>=1.7.0` - SINDy implementation
+- `pysindy==1.7.5` - SINDy implementation
 - `numpy>=1.21.0` - Numerical computing
 - `pandas>=1.3.0` - Data manipulation
 - `matplotlib>=3.4.0` - Plotting
