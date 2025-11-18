@@ -1,6 +1,7 @@
 """
 SINDy Model Reproduction Script for Ordovician Biogeochemistry
-Paper: "Data-Driven Biogeochemical Dynamics..."
+Paper: "Data-Driven Biogeochemical Dynamics: Extracting data-driven
+ differential model from Complex Geological Datasets"
 Submitted to Computers & Geosciences
 
 Description:
@@ -171,4 +172,5 @@ def run_analysis():
 
 if __name__ == "__main__":
     run_analysis()
+
 
