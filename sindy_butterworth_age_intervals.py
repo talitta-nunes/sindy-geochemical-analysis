@@ -1,269 +1,173 @@
 """
-Apply Butterworth filtering and PySINDy (with ensemble) to geochemical
-time series for multiple geological age intervals.
+SINDy Model Reproduction Script for Ordovician Biogeochemistry
+Paper: "Data-Driven Biogeochemical Dynamics..."
+Submitted to Computers & Geosciences
 
-This script was designed to work with an older version of PySINDy (1.7.x),
-which supports the argument `ensemble=True` in the `SINDy.fit` method.
+Description:
+This script reproduces the governing equations and time-series simulations 
+presented in the manuscript using the Sparse Identification of Nonlinear 
+Dynamics (SINDy) algorithm. It applies specific filtering parameters 
+optimized for each geological time interval.
 
-Data columns expected (in this order):
-    toc, age, pyrite, p
-
-Author: Talitta Nunes Manoel
+Usage:
+    Ensure 'DATA.csv' is in the same directory.
+    Run: python reproduce_sindy.py
 """
 
-# =============================================================================
-# Imports
-# =============================================================================
-
-from typing import List, Tuple
-
-import dask.dataframe as dd
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+import numpy as np
+import pysindy as ps
 from scipy.signal import butter, filtfilt
 
-import pysindy as ps
+# --- 1. GENERAL CONFIGURATION ---
+# Global Threshold: Since StandardScaler is NOT used to preserve interpretability,
+# coefficients can be small. We use 1e-6 to avoid cutting off subtle dynamics.
+GLOBAL_THRESHOLD = 1e-6 
 
+# --- 2. INTERVAL CONFIGURATION DICTIONARY ---
+# Exact pairs of cutoff/order optimized for each time interval based on data density.
+# Format: (Start_Ma, End_Ma): {'cutoff': value, 'order': value}
+INTERVAL_CONFIGS = {
+    (440, 445): {'cutoff': 0.10, 'order': 3},
+    (445, 448): {'cutoff': 0.10, 'order': 4},
+    (448, 452): {'cutoff': 0.10, 'order': 2},
+    (452, 458): {'cutoff': 0.10, 'order': 1},
+    (458, 465): {'cutoff': 0.10, 'order': 5},
+    (465, 467): {'cutoff': 0.10, 'order': 1},
+    (467, 470): {'cutoff': 0.08, 'order': 1},
+    (470, 473): {'cutoff': 0.10, 'order': 1},
+    (473, 480): {'cutoff': 0.10, 'order': 4},
+    (480, 483): {'cutoff': 0.10, 'order': 1},
+    (483, 488): {'cutoff': 0.10, 'order': 1},
+}
 
-# =============================================================================
-# Configuration
-# =============================================================================
-
-# Example: file generated from the original one by dropping the third column.
-DATA_FILE = "DATA.csv"
-
-# Age intervals (in Ma) to be analyzed
-AGE_INTERVALS: List[Tuple[float, float]] = [
-    (440, 445),
-    (445, 448),
-    (448, 452),
-    (452, 458),
-    (458, 465),
-    (465, 467),
-    (467, 470),
-    (470, 473),
-    (473, 480),
-    (480, 483),
-    (483, 488),
-]
-
-# Cutoff and order values for Butterworth filter
-CUTOFF_VALUES = [0.1, 0.2, 0.3, 0.4]
-ORDER_VALUES = [1, 2, 3, 4, 5]
-
-
-# =============================================================================
-# Core functions
-# =============================================================================
-
-def apply_butterworth_filter(
-    data: np.ndarray,
-    cutoff: float,
-    order: int
-) -> np.ndarray:
-    """
-    Apply a low-pass Butterworth filter to a 1D numpy array.
-
-    Parameters
-    ----------
-    data : np.ndarray
-        Input time series.
-    cutoff : float
-        Normalized cutoff frequency (0 < cutoff < 1).
-    order : int
-        Order of the Butterworth filter.
-
-    Returns
-    -------
-    np.ndarray
-        Filtered time series with negative values clipped to zero.
-    """
-    b, a = butter(order, cutoff, btype="low", analog=False)
+def apply_butterworth_filter(data, cutoff, order):
+    """Applies a low-pass Butterworth filter to smooth geological data."""
+    b, a = butter(order, cutoff, btype='low', analog=False)
     filtered_data = filtfilt(b, a, data)
-    filtered_data[filtered_data < 0] = 0.0  # Ensure non-negative values
+    filtered_data[filtered_data < 0] = 0  # Ensures physical non-negativity
     return filtered_data
 
-
-def apply_butterworth_and_sindy(
-    cutoff: float,
-    order: int,
-    age_min: float,
-    age_max: float,
-    data_file: str = DATA_FILE,
-) -> None:
-    """
-    Apply Butterworth filtering and PySINDy to a given age interval.
-
-    Steps
-    -----
-    - Load and preprocess data.
-    - Filter by age interval.
-    - Smooth series with Butterworth filter.
-    - Fit a SINDy model with ensemble=True.
-    - Print discovered derivatives.
-    - Plot original vs SINDy-simulated variables.
-
-    Parameters
-    ----------
-    cutoff : float
-        Normalized cutoff frequency for the Butterworth filter.
-    order : int
-        Order of the Butterworth filter.
-    age_min : float
-        Minimum age (Ma) of the interval.
-    age_max : float
-        Maximum age (Ma) of the interval.
-    data_file : str, optional
-        Path to the CSV file with the input data.
-    """
-    # -------------------------------------------------------------------------
-    # 1) Load and prepare data
-    # -------------------------------------------------------------------------
-    dd_df = dd.read_csv(data_file)
-    data = np.array(dd_df).astype(float)
-
-    # Dataset now has 4 columns: toc, age, pyrite, p
-    df = pd.DataFrame(data, columns=["toc", "age", "pyrite", "p"])
-    df = df.sort_values("age")
-    df.interpolate(limit_direction="both", inplace=True)
-
-    # Filter by age interval
-    filtered_df = df[(df["age"] >= age_min) & (df["age"] <= age_max)].copy()
-
-    if filtered_df.empty:
-        print(f"[WARN] No data in interval {age_min}-{age_max} Ma. Skipping.")
+def run_analysis():
+    print("--- Starting SINDy Reproduction Script (Raw Data Mode) ---")
+    
+    # 1. Load and Prepare Data
+    try:
+        df = pd.read_csv("DATA.csv")
+        # Ensure consistent column naming
+        df.columns = ['toc', 'age', 'pyrite', 'p']
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        print("Please ensure 'DATA_IRON_ONLY.csv' is in the script directory.")
         return
 
-    # Group by rounded age (0.1 Ma) and compute mean
-    filtered_df["rounded_age"] = filtered_df["age"].round(1)
-    grouped_data = filtered_df.groupby("rounded_age").mean().reset_index()
+    # Interpolation to handle missing geological steps
+    df = df.sort_values('age')
+    df.interpolate(limit_direction="both", inplace=True)
 
-    # Normalize phosphorus
-    grouped_data["p"] = grouped_data["p"] / 10000.0
+    # 2. Iterate through defined time intervals
+    for (start_time, end_time), params in INTERVAL_CONFIGS.items():
+        print(f"\n{'='*60}")
+        print(f" PROCESSING INTERVAL: {start_time} - {end_time} Ma")
+        print(f" Filter Parameters: Cutoff={params['cutoff']}, Order={params['order']}")
+        print(f"{'='*60}")
 
-    # -------------------------------------------------------------------------
-    # 2) Apply Butterworth filter to each variable
-    # -------------------------------------------------------------------------
-    grouped_data["toc_smooth"] = apply_butterworth_filter(
-        grouped_data["toc"].values, cutoff, order
-    )
-    grouped_data["pyrite_smooth"] = apply_butterworth_filter(
-        grouped_data["pyrite"].values, cutoff, order
-    )
-    grouped_data["p_smooth"] = apply_butterworth_filter(
-        grouped_data["p"].values, cutoff, order
-    )
+        # Filter data for the specific interval
+        mask = (df['age'] >= start_time) & (df['age'] <= end_time)
+        filtered_df = df[mask].copy()
 
-    # Quick visualization of smoothed series
-    grouped_data.plot(
-        x="age",
-        y=["toc_smooth", "pyrite_smooth", "p_smooth"],
-        subplots=True,
-        figsize=(8, 8),
-    )
-    plt.suptitle(
-        f"Interval {age_min}-{age_max} Ma | cutoff={cutoff}, order={order}"
-    )
-    plt.tight_layout()
-    plt.show()
+        if len(filtered_df) < 5:
+            print(" [!] Insufficient data points for this interval. Skipping.")
+            continue
 
-    # -------------------------------------------------------------------------
-    # 3) Extract data for PySINDy
-    # -------------------------------------------------------------------------
-    t = grouped_data["age"].values
-    data_toc = grouped_data["toc_smooth"].values
-    data_py = grouped_data["pyrite_smooth"].values
-    data_p = grouped_data["p_smooth"].values
+        # Grouping by rounded age to handle duplicates/noise
+        filtered_df['rounded_age'] = filtered_df['age'].round(1)
+        grouped_data = filtered_df.groupby('rounded_age').mean().reset_index()
+        
+        # --- CRITICAL: Manual Normalization ---
+        # Since StandardScaler is disabled, we manually scale Phosphorus
+        # to bring it to a comparable numerical range.
+        grouped_data['p'] = grouped_data['p'] / 10000 
 
-    # Stack variables: [toc, pyrite, p]
-    data_list = np.stack((data_toc, data_py, data_p), axis=-1)
+        # Apply Smoothing Filter
+        cutoff = params['cutoff']
+        order = params['order']
+        
+        grouped_data['toc_smooth'] = apply_butterworth_filter(grouped_data['toc'].values, cutoff, order)
+        grouped_data['pyrite_smooth'] = apply_butterworth_filter(grouped_data['pyrite'].values, cutoff, order)
+        grouped_data['p_smooth'] = apply_butterworth_filter(grouped_data['p'].values, cutoff, order)
 
-    # -------------------------------------------------------------------------
-    # 4) Build and fit PySINDy model (old API with ensemble=True)
-    # -------------------------------------------------------------------------
-    dif = ps.SINDyDerivative(kind="kalman", alpha=0.3)
+        # Prepare Vectors for SINDy
+        t = grouped_data["age"].values
+        data_toc = grouped_data["toc_smooth"].values
+        data_py = grouped_data['pyrite_smooth'].values
+        data_p = grouped_data['p_smooth'].values
+        
+        # Stack Data (X Matrix) - No extra normalization applied here
+        X = np.stack((data_toc, data_py, data_p), axis=-1)
 
-    feature_names = ["toc", "pyrite", "p"]
-    custom_optimizer = ps.STLSQ(threshold=1e-6)
+        # Configure SINDy Model
+        dif = ps.SINDyDerivative(kind='kalman', alpha=0.3)
+        feature_names = ["toc", "pyrite", "p"]
+        
+        # Using global threshold for raw data
+        custom_optimizer = ps.STLSQ(threshold=GLOBAL_THRESHOLD)
+        
+        model = ps.SINDy(
+            differentiation_method=dif, 
+            feature_names=feature_names, 
+            optimizer=custom_optimizer,
+            feature_library=ps.PolynomialLibrary(degree=2, include_bias=True)
+        )
 
-    model = ps.SINDy(
-        differentiation_method=dif,
-        feature_names=feature_names,
-        optimizer=custom_optimizer,
-       
-    )
+        try:
+            # Fit Model
+            model.fit(X, t, ensemble=True, quiet=True)
+            
+            print("\n>>> Discovered Governing Equations (Real Scale):")
+            model.print()
 
-    # Old PySINDy (1.7.x) supports ensemble=True in fit
-    model.fit(data_list, t, ensemble=True)
+            # Simulate Model
+            x0 = X[0]
+            simulated_data = model.simulate(x0, t, integrator='solve_ivp')
 
-    print(f"\nDerivatives for SINDy (interval {age_min}-{age_max} Ma):")
-    model.print()
+            # Safety Check (Overflow/NaN)
+            if np.any(np.isinf(simulated_data)) or np.any(np.isnan(simulated_data)):
+                raise ValueError("Simulation resulted in infinity (numerical instability).")
 
-    # -------------------------------------------------------------------------
-    # 5) Simulate and plot SINDy results
-    # -------------------------------------------------------------------------
-    simulated_data_list = model.simulate(
-        data_list[0], t, integrator="solve_ivp"
-    )
+            # Plot Results
+            fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+            
+            # TOC Plot
+            axs[0].plot(t, data_toc, 'k-', label='Observed Data (Smoothed)')
+            axs[0].plot(t, simulated_data[:, 0], 'r--', label='SINDy Simulation')
+            axs[0].set(ylabel='TOC (wt. %)')
+            axs[0].legend()
+            axs[0].grid(True, linestyle=':', alpha=0.6)
 
-    fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+            # FePy/FeHR Plot
+            axs[1].plot(t, data_py, 'k-', label='Observed Data')
+            axs[1].plot(t, simulated_data[:, 1], 'r--', label='SINDy Simulation')
+            axs[1].set(ylabel='FePy/FeHR')
+            axs[1].legend()
+            axs[1].grid(True, linestyle=':', alpha=0.6)
 
-    # TOC
-    axs[0].plot(t, data_toc, label="DATA TOC")
-    axs[0].plot(simulated_data_list[:, 0], "--", label="SINDy TOC")
-    axs[0].set(ylabel="TOC")
-    axs[0].legend()
-    axs[0].grid(True, which="both", axis="x", linestyle="--", linewidth=0.5)
+            # Phosphorus Plot
+            axs[2].plot(t, data_p, 'k-', label='Observed Data')
+            axs[2].plot(t, simulated_data[:, 2], 'r--', label='SINDy Simulation')
+            axs[2].set(ylabel='Phosphorus (Scaled)')
+            axs[2].legend()
+            axs[2].grid(True, linestyle=':', alpha=0.6)
 
-    # FePy/FeHR
-    axs[1].plot(t, data_py, label="DATA FePy/FeHR")
-    axs[1].plot(simulated_data_list[:, 1], "--", label="SINDy FePy/FeHR")
-    axs[1].set(ylabel="FePy/FeHR")
-    axs[1].legend()
-    axs[1].grid(True, which="both", axis="x", linestyle="--", linewidth=0.5)
+            axs[-1].set(xlabel='Age (Ma)')
+            plt.suptitle(f'Interval {start_time}-{end_time} Ma (Cutoff={cutoff})')
+            plt.tight_layout()
+            plt.show()
 
-    # Phosphorus
-    axs[2].plot(t, data_p, label="DATA phosphorus")
-    axs[2].plot(simulated_data_list[:, 2], "--", label="SINDy phosphorus")
-    axs[2].set(ylabel="Phosphorus")
-    axs[2].legend()
-    axs[2].grid(True, which="both", axis="x", linestyle="--", linewidth=0.5)
-
-    axs[-1].set(xlabel="Age (Ma)")
-    plt.suptitle(
-        f"SINDy vs data – interval {age_min}-{age_max} Ma\n"
-        f"cutoff={cutoff}, order={order}"
-    )
-    plt.tight_layout()
-    plt.show()
-
-
-# =============================================================================
-# Main execution
-# =============================================================================
-
-def main() -> None:
-    """Run SINDy analysis for all age intervals and filter configurations."""
-    for age_min, age_max in AGE_INTERVALS:
-        print("\n" + "=" * 30)
-        print(f"Age interval: {age_min}-{age_max} Ma")
-        print("=" * 30)
-
-        for cutoff in CUTOFF_VALUES:
-            for order in ORDER_VALUES:
-                print(
-                    f"\nTesting interval {age_min}-{age_max} Ma | "
-                    f"cutoff={cutoff} | order={order}"
-                )
-                apply_butterworth_and_sindy(
-                    cutoff=cutoff,
-                    order=order,
-                    age_min=age_min,
-                    age_max=age_max,
-                    data_file=DATA_FILE,
-                )
-
+        except Exception as e:
+            print(f" [!] Error in this interval: {e}")
+            print("     Suggestion: Try adjusting the cutoff for this specific interval.")
 
 if __name__ == "__main__":
-    main()
+    run_analysis()
