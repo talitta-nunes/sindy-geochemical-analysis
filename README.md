@@ -69,7 +69,7 @@ pip install -r requirements.txt
 ### Running Locally
 
 ```bash
-jupyter notebook sindy_analysis.ipynb
+jupyter notebook sindy_butterworth_age_intervals.py 
 ```
 
 Ensure the `DATA.csv` file is in the same directory as the notebook.
