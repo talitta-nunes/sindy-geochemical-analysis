@@ -34,13 +34,12 @@ INTERVAL_CONFIGS = {
     (445, 448): {'cutoff': 0.10, 'order': 4},
     (448, 452): {'cutoff': 0.10, 'order': 2},
     (452, 458): {'cutoff': 0.10, 'order': 1},
-    (458, 465): {'cutoff': 0.10, 'order': 5},
+    (458, 465): {'cutoff': 0.15, 'order': 2},
     (465, 467): {'cutoff': 0.10, 'order': 1},
-    (467, 470): {'cutoff': 0.08, 'order': 1},
+    (467, 470): {'cutoff': 0.30, 'order': 1},
     (470, 473): {'cutoff': 0.10, 'order': 1},
     (473, 480): {'cutoff': 0.10, 'order': 4},
     (480, 483): {'cutoff': 0.10, 'order': 1},
-    (483, 488): {'cutoff': 0.10, 'order': 1},
 }
 
 def apply_butterworth_filter(data, cutoff, order):
@@ -172,5 +171,6 @@ def run_analysis():
 
 if __name__ == "__main__":
     run_analysis()
+
 
 
