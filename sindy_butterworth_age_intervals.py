@@ -30,9 +30,8 @@ import pysindy as ps
 # Configuration
 # =============================================================================
 
-# Path to the input CSV file (now WITHOUT ironspec column)
 # Example: file generated from the original one by dropping the third column.
-DATA_FILE = "DATA_IRON_ONLY_no_ironspec.csv"
+DATA_FILE = "DATA.csv"
 
 # Age intervals (in Ma) to be analyzed
 AGE_INTERVALS: List[Tuple[float, float]] = [
@@ -184,11 +183,7 @@ def apply_butterworth_and_sindy(
     # 4) Build and fit PySINDy model (old API with ensemble=True)
     # -------------------------------------------------------------------------
     dif = ps.SINDyDerivative(kind="kalman", alpha=0.3)
-    # This is kept for historical reasons / compatibility with older code,
-    # but it's not directly used here:
-    differentiation_method = ps.SmoothedFiniteDifference()  # noqa: F841
 
-    poly_lib = ps.PolynomialLibrary(degree=2, include_bias=False)
     feature_names = ["toc", "pyrite", "p"]
     custom_optimizer = ps.STLSQ(threshold=1e-6)
 
@@ -196,7 +191,7 @@ def apply_butterworth_and_sindy(
         differentiation_method=dif,
         feature_names=feature_names,
         optimizer=custom_optimizer,
-        feature_library=poly_lib,
+       
     )
 
     # Old PySINDy (1.7.x) supports ensemble=True in fit
