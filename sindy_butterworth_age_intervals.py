@@ -11,7 +11,7 @@ optimized for each geological time interval.
 
 Usage:
     Ensure 'DATA.csv' is in the same directory.
-    Run: python reproduce_sindy.py
+    Run: python sindy-geochemical-analysis.py
 """
 
 import matplotlib.pyplot as plt
@@ -171,3 +171,4 @@ def run_analysis():
 
 if __name__ == "__main__":
     run_analysis()
+
