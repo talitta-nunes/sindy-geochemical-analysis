@@ -81,7 +81,6 @@ Ensure the `DATA.csv` file is in the same directory as the notebook.
 **Columns**:
 - `age`: Geological age (Ma)
 - `toc`: Total Organic Carbon (%)
-- `ironspec`: Iron speciation data
 - `pyrite`: Pyrite content (FePy/FeHR ratio)
 - `p`: Phosphorus concentration (normalized)
 
