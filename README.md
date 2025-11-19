@@ -53,7 +53,7 @@ pip install -r requirements.txt
 
 ### Running in Google Colab (Recommended)
 
-1. Open the notebook in Google Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/[seu-usuario]/sindy-geochemical-analysis/blob/main/sindy_butterworth_age_intervals.py)
+1. Open the notebook in Google Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/[your_user]/sindy-geochemical-analysis/blob/main/sindy_butterworth_age_intervals.py)
 
 2. Upload the `DATA.csv` file when prompted
 
@@ -77,13 +77,13 @@ Ensure the `DATA.csv` file is in the same directory as the notebook.
 - `pyrite`: Pyrite content (FePy/FeHR ratio)
 - `p`: Phosphorus concentration (normalized)
 
-**Time range**: 440-488 Ma (Late Ordovician)
+**Time range**: 440-483 Ma (Late Ordovician)
 
 ## Methodology
 
 1. **Data Preprocessing**
    - Temporal sorting and interpolation
-   - Age filtering (440-488 Ma)
+   - Age filtering (440-483 Ma)
    - Binning to 0.1 Ma resolution
    - Phosphorus normalization
 
