@@ -118,7 +118,7 @@ def run_analysis():
             differentiation_method=dif, 
             feature_names=feature_names, 
             optimizer=custom_optimizer,
-            feature_library=ps.PolynomialLibrary(degree=2, include_bias=True)
+           
         )
 
         try:
@@ -137,31 +137,31 @@ def run_analysis():
                 raise ValueError("Simulation resulted in infinity (numerical instability).")
 
             # Plot Results
-            fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+            fig, axs = plt.subplots(3, 1, figsize=(10, 12))
             
             # TOC Plot
             axs[0].plot(t, data_toc, 'k-', label='Observed Data (Smoothed)')
             axs[0].plot(t, simulated_data[:, 0], 'r--', label='SINDy Simulation')
-            axs[0].set(ylabel='TOC (wt. %)')
+            axs[0].set(ylabel='TOC (wt. %)', xlabel='Age (Ma)')
             axs[0].legend()
             axs[0].grid(True, linestyle=':', alpha=0.6)
 
             # FePy/FeHR Plot
             axs[1].plot(t, data_py, 'k-', label='Observed Data')
             axs[1].plot(t, simulated_data[:, 1], 'r--', label='SINDy Simulation')
-            axs[1].set(ylabel='FePy/FeHR')
+            axs[1].set(ylabel='FePy/FeHR', xlabel='Age (Ma)')
             axs[1].legend()
             axs[1].grid(True, linestyle=':', alpha=0.6)
 
             # Phosphorus Plot
             axs[2].plot(t, data_p, 'k-', label='Observed Data')
             axs[2].plot(t, simulated_data[:, 2], 'r--', label='SINDy Simulation')
-            axs[2].set(ylabel='Phosphorus (Scaled)')
+            axs[2].set(ylabel='Phosphorus (Scaled)', xlabel='Age (Ma)')
             axs[2].legend()
             axs[2].grid(True, linestyle=':', alpha=0.6)
 
             axs[-1].set(xlabel='Age (Ma)')
-            plt.suptitle(f'Interval {start_time}-{end_time} Ma (Cutoff={cutoff})')
+            plt.suptitle(f'Interval {start_time}-{end_time} Ma')
             plt.tight_layout()
             plt.show()
 
@@ -171,6 +171,7 @@ def run_analysis():
 
 if __name__ == "__main__":
     run_analysis()
+
 
 
 
