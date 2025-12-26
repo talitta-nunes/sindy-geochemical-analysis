@@ -31,7 +31,6 @@ GLOBAL_THRESHOLD = 1e-6
 # Format: (Start_Ma, End_Ma): {'cutoff': value, 'order': value}
 
 INTERVAL_CONFIGS = {
-    INTERVAL_CONFIGS = {
     (440, 445): {'cutoff': 0.10, 'order': 2},
     (445, 448): {'cutoff': 0.10, 'order': 4},
     (448, 452): {'cutoff': 0.10, 'order': 2},
@@ -133,6 +132,7 @@ for (start_age, end_age), params in INTERVAL_CONFIGS.items():
     order = params['order']
     print(f"\nTesting interval {start_age}-{end_age} with cutoff={cutoff} and order={order}")
     apply_butterworth_and_sindy(cutoff, order, start_age, end_age)
+
 
 
 
