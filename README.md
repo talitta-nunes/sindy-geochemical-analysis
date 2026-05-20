@@ -1,142 +1,292 @@
-# sindy-geochemical-analysis
-"SINDy analysis for Ordovician geochemical proxy data"
-# SINDy-Geochemical-Analysis
+# SINDy Geochemical Analysis
+
+Enhanced SINDy analysis for Ordovician geochemical proxy data.
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
-This repository contains the code and data for discovering governing equations from Ordovician geochemical proxy data using Sparse Identification of Nonlinear Dynamics (SINDy).
+This repository contains a single main Python script for discovering reduced-order governing equations from Ordovician geochemical proxy time series using Sparse Identification of Nonlinear Dynamics (SINDy).
 
+The workflow was developed for the manuscript:
+
+**Data-Driven Biogeochemical Dynamics: Extracting Data-Driven Differential Models from Complex Geological Datasets**
+
+The script includes preprocessing, outlier treatment, interval-specific filtering, SINDy model fitting, cross-validation, coefficient export, model-performance metrics, and figure generation.
 
 ## Description
 
-The code implements a data-driven approach to identify nonlinear dynamical systems from geochemical time series data, including:
+The code implements a data-driven approach to infer differential equations from geochemical proxy records, including:
 
-- **Total Organic Carbon (TOC)**
-- **Highly Reactive Iron ratio (FePy/FeHR)**
-- **Phosphorus concentrations**
+- Total Organic Carbon (TOC)
+- Pyrite iron ratio / highly reactive iron proxy (FePy/FeHR)
+- Phosphorus concentration
 
-Key features:
-- Butterworth filtering for noise reduction with systematic parameter testing
-- SINDy implementation using Kalman-smoothed derivatives
-- Sparse regression (STLSQ) for parsimonious model selection
-- Forward simulation and validation against observations
+The workflow includes:
+
+- Age-windowed SINDy modeling
+- Butterworth filtering with interval-specific parameters
+- Outlier removal before filtering
+- Kalman-smoothed derivative estimation
+- Sparse regression using STLSQ
+- Polynomial feature libraries
+- Ensemble SINDy fitting
+- Forward simulation using `solve_ivp`
+- Cross-validation with adaptive folds
+- Separate tracking of seen and unseen R²
+- RMSE calculation
+- Coefficient export
+- Heatmaps and publication-ready figures
 
 ## Installation
 
 ### Prerequisites
+
 - Python 3.8 or higher
 - pip package manager
 
 ### Setup
 
-1. Clone the repository:
+Clone the repository:
+
 ```bash
-git clone https://github.com/[seu-usuario]/sindy-geochemical-analysis.git
+git clone https://github.com/[your-user]/sindy-geochemical-analysis.git
 cd sindy-geochemical-analysis
 ```
 
-2. Create a virtual environment (recommended):
+Create a virtual environment:
+
 ```bash
 python -m venv env
-source env/bin/activate  # On Windows: env\Scripts\activate
 ```
 
-3. Install dependencies:
+Activate the environment:
+
+```bash
+# Linux / macOS
+source env/bin/activate
+
+# Windows
+env\Scripts\activate
+```
+
+Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Usage
 
-### Running in Google Colab (Recommended)
+Place the input data file in the repository root directory.
 
-1. Open the notebook in Google Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/[your_user]/sindy-geochemical-analysis/blob/main/sindy_butterworth_age_intervals.py)
-
-2. Upload the `DATA.csv` file when prompted
-
-3. Run all cells sequentially
-
-### Running Locally
+Then run the main script:
 
 ```bash
-jupyter notebook sindy_butterworth_age_intervals.py 
+python sindy_geochemical_analysis.py
 ```
-
-Ensure the `DATA.csv` file is in the same directory as the notebook.
 
 ## Input Data
 
-**File**: `DATA.csv`
+Expected input file:
 
-**Columns**:
-- `age`: Geological age (Ma)
-- `toc`: Total Organic Carbon (%)
-- `pyrite`: Pyrite content (FePy/FeHR ratio)
-- `p`: Phosphorus concentration (normalized)
+```text
+DATA.csv
+```
 
-**Time range**: 440-483 Ma (Late Ordovician)
+The dataset should contain the following variables:
+
+- `age`: geological age in Ma
+- `toc`: total organic carbon
+- `pyrite`: FePy/FeHR proxy
+- `p`: phosphorus concentration
+- `ironspec`: iron speciation proxy, if present in the raw file
+
+The modeled variables are:
+
+- TOC
+- FePy/FeHR
+- P
 
 ## Methodology
 
-1. **Data Preprocessing**
-   - Temporal sorting and interpolation
-   - Age filtering (440-483 Ma)
-   - Binning to 0.1 Ma resolution
-   - Phosphorus normalization
+The workflow follows these main steps.
 
-2. **Signal Processing**
-   - Butterworth low-pass filtering
-   - Parameter sweep: cutoff ∈ {0.1, 0.2, 0.3, 0.4}, order ∈ {1, 2, 3, 4, 5}
+### 1. Data preprocessing
 
-3. **SINDy Model**
-   - Differentiation: Kalman smoother (α=0.3)
-   - Optimizer: STLSQ (threshold=1e-6)
-   - Integration: solve_ivp
+- Sorting by geological age
+- Interpolation of missing values
+- Selection of Ordovician age intervals
+- Grouping by rounded age
+- Phosphorus normalization
 
-4. **Validation**
-   - Visual comparison of data vs. simulation
-   - Systematic evaluation across filter parameters
+### 2. Outlier treatment
+
+Outliers are removed before filtering.
+
+Available methods include:
+
+- Standard IQR-based filtering
+- Strict IQR-based filtering
+- Percentile-based filtering
+- Z-score filtering
+- Aggressive multi-pass filtering
+
+### 3. Signal smoothing
+
+- Butterworth low-pass filtering
+- Interval-specific cutoff and filter order
+- Padding correction for short time series
+
+### 4. SINDy model fitting
+
+- Kalman-smoothed derivative estimation
+- STLSQ sparse regression
+- Polynomial feature library
+- Ensemble fitting
+- Selection of best-performing models
+
+### 5. Validation
+
+- Forward simulation
+- In-sample performance metrics
+- Cross-validation for unseen-data evaluation
+- R² calculation
+- RMSE calculation
+- Separate tracking of seen and unseen model performance
+
+### 6. Output generation
+
+- Differential equations
+- Model coefficients
+- Performance metrics
+- Observed vs. simulated time-series plots
+- Heatmaps and summary figures
 
 ## Output
 
-The code generates:
-- Discovered differential equations for each variable
-- Time series plots comparing observed vs. simulated data
-- Results for all filter parameter combinations
+The script creates the following directories:
+
+```text
+outputs/
+outputs/TOC/
+outputs/FePy_FeHr/
+outputs/P/
+results/
+```
+
+Generated files may include:
+
+- Time-series plots comparing observed and simulated data
+- Outlier visualization plots
+- CSV files with model coefficients
+- CSV files with R² and RMSE metrics
+- Summary figures for model comparison
+- Heatmaps of model coefficients
 
 ## Repository Structure
 
-```
+```text
 sindy-geochemical-analysis/
 │
-├── sindy_butterworth_age_intervals.py          # Main Jupyter notebook
-├── DATA.csv                                    # Input dataset
-├── requirements.txt                            # Python dependencies
-├── README.md                                   # This file
-├── LICENSE                                     # License information
-└── figures/                                    # Output plots (generated)
+├── sindy_geochemical_analysis.py      # Main SINDy analysis script
+├── DATA.csv                           # Input dataset
+├── requirements.txt                   # Python dependencies
+├── README.md                          # Repository documentation
+├── LICENSE                            # License information
+│
+├── outputs/                           # Generated figures
+│   ├── TOC/
+│   ├── FePy_FeHr/
+│   └── P/
+│
+└── results/                           # Generated metrics and coefficients
 ```
 
 ## Dependencies
 
 Main libraries:
-- `pysindy==1.7.5` - SINDy implementation
-- `numpy>=1.21.0` - Numerical computing
-- `pandas>=1.3.0` - Data manipulation
-- `matplotlib>=3.4.0` - Plotting
-- `scipy>=1.7.0` - Signal processing
-- `scikit-learn>=0.24.0` - ML utilities
-- `statsmodels>=0.13.0` - Statistical models
-- `dask>=2021.10.0` - Parallel computing
 
-See `requirements.txt` for complete list with version specifications.
+- `pysindy==1.7.5`
+- `numpy==1.26.4`
+- `scipy==1.11.4`
+- `pandas==2.1.4`
+- `scikit-learn==1.3.2`
+- `matplotlib==3.8.0`
+- `seaborn`
+- `statsmodels`
+
+See `requirements.txt` for the complete list.
+
+## Configuration
+
+Important configuration parameters are defined inside the main script:
+
+```python
+GLOBAL_THRESHOLD = 1e-6
+TOP_N_RESULTS = 2
+POLY_DEGREE = 2
+MAX_COEFFICIENT = 100000.0
+
+MIN_FOLDS = 2
+MAX_FOLDS = 4
+MIN_TRAIN_PTS = 2
+PTS_PER_FOLD = 5
+
+OUTLIER_METHOD = "standard"
+```
+
+The age intervals and Butterworth filter parameters are defined in:
+
+```python
+INTERVAL_CONFIGS = {
+    (440, 445): {"cutoff": 0.10, "order": 2},
+    (445, 448): {"cutoff": 0.10, "order": 2},
+    (448, 452): {"cutoff": 0.10, "order": 1},
+    (452, 458): {"cutoff": 0.05, "order": 1},
+    (458, 462): {"cutoff": 0.10, "order": 2},
+    (462, 467): {"cutoff": 0.10, "order": 1},
+    (467, 473): {"cutoff": 0.05, "order": 1},
+    (473, 480): {"cutoff": 0.05, "order": 2},
+    (480, 483): {"cutoff": 0.10, "order": 1},
+    (483, 488): {"cutoff": 0.10, "order": 2},
+}
+```
+
+## Notes on Reproducibility
+
+This repository is organized around a single main analysis script:
+
+```text
+sindy_geochemical_analysis.py
+```
+
+The script contains the full enhanced SINDy workflow, including preprocessing, filtering, outlier removal, model fitting, validation, coefficient export, and figure generation.
+
+Because the workflow includes configurable preprocessing and validation steps, the final equations and performance metrics depend on the selected configuration.
+
+If `POLY_DEGREE = 2`, the model includes nonlinear and interaction terms.
+
+If only first-order equations are desired, set:
+
+```python
+POLY_DEGREE = 1
+```
+
+## Important Notes
+
+- The input data file must be placed in the same directory as the script.
+- The script expects the input file to be named `DATA.csv`.
+- If your data file has another name, either rename it to `DATA.csv` or update the file path inside the script.
+- Dependencies should be installed through `requirements.txt`, not inside the Python script.
+- If the script still contains Google Colab commands such as `!pip install`, remove them before running it locally as a `.py` file.
+- Generated folders such as `outputs/` and `results/` can be ignored by Git if they are large or automatically generated.
+- The main script should be named `sindy_geochemical_analysis.py` for clarity and reproducibility.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ## Contact
 
@@ -146,6 +296,6 @@ Email: nunestalitta@gmail.com
 
 ## References
 
-1. Brunton, S. L., Proctor, J. L., & Kutz, J. N. (2016). Discovering governing equations from data by sparse identification of nonlinear dynamical systems. *Proceedings of the National Academy of Sciences*, 113(15), 3932-3937.
+1. Brunton, S. L., Proctor, J. L., & Kutz, J. N. (2016). Discovering governing equations from data by sparse identification of nonlinear dynamical systems. *Proceedings of the National Academy of Sciences*, 113(15), 3932–3937.
 
-2. de Silva, B. M., et al. (2020). PySINDy: A Python package for the sparse identification of nonlinear dynamical systems from data. *Journal of Open Source Software*, 5(49), 2104.
+2. de Silva, B. M., Champion, K., Quade, M., Loiseau, J. C., Kutz, J. N., & Brunton, S. L. (2020). PySINDy: A Python package for the sparse identification of nonlinear dynamical systems from data. *Journal of Open Source Software*, 5(49), 2104.
