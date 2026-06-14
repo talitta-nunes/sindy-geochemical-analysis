@@ -87,13 +87,11 @@ The expected input file is:
 DATA.csv
 ```
 
+```markdown
 Run the main analysis script:
-
-run:
 
 ```bash
 python sindy_geochemical_analysis_enhanced.py
-```
 
 ## Input Data
 
