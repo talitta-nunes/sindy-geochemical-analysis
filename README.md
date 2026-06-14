@@ -89,26 +89,10 @@ DATA.csv
 
 Run the main analysis script:
 
-```bash
-python sindy_geochemical_analysis_enhanced.py
-```
-
-If the repository contains the script under a different name, such as:
-
-```text
-sindy_geochemical_analysis_enhanced.py
-```
-
 run:
 
 ```bash
 python sindy_geochemical_analysis_enhanced.py
-```
-
-For reproducibility and consistency with the manuscript, the recommended main script name is:
-
-```text
-sindy_geochemical_analysis_enhanced.py
 ```
 
 ## Input Data
