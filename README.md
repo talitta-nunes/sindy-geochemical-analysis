@@ -249,18 +249,6 @@ The default value used to reproduce the final selected models in the manuscript 
 POLY_DEGREE = 1
 ```
 
-To reproduce the second-degree polynomial-library comparison reported in the manuscript appendix, set:
-
-```python
-POLY_DEGREE = 2
-```
-
-When `POLY_DEGREE = 2`, the model includes nonlinear and interaction terms such as:
-
-```text
-C², CX, CP, X², XP, P²
-```
-
 The age intervals and Butterworth filter parameters are defined in:
 
 ```python
@@ -296,12 +284,6 @@ For the final manuscript configuration, use:
 
 ```python
 POLY_DEGREE = 1
-```
-
-For the polynomial-library comparison discussed in the Appendix, use:
-
-```python
-POLY_DEGREE = 2
 ```
 
 ## Important Notes
