@@ -210,8 +210,6 @@ sindy-geochemical-analysis/
 └── results/                           # Generated metrics and coefficients
 ```
 
-If the current script is named `sindy_geochemical_analysis_enhanced.py`, it should either be renamed to `sindy_geochemical_analysis_enhanced.py` or the usage command should be updated accordingly.
-
 ## Dependencies
 
 Main libraries:
