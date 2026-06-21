@@ -1,43 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-SINDy Geochemical Analysis
-
-Enhanced SINDy analysis for Ordovician geochemical proxy data.
-
-This script performs:
-- data preprocessing
-- outlier removal
-- Butterworth filtering
-- SINDy model fitting
-- cross-validation
-- seen/unseen R² evaluation
-- RMSE calculation
-- coefficient export
-- figure generation
-
-Input:
-    DATA.csv
-
-Run:
-    python sindy_geochemical_analysis.py
-"""
-
-import os
-import json
-import warnings
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import pysindy as ps
-
-from scipy import stats
-from scipy.interpolate import interp1d
-from scipy.signal import butter, filtfilt
-from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import TimeSeriesSplit
-
-warnings.filterwarnings("ignore")
 """
 SINDy Model Reproduction Script
 ENHANCED VERSION WITH EXPLICIT UNSEEN DATA R² SAVING AND COEFFICIENT LIMITING:
@@ -80,7 +40,6 @@ os.makedirs(FIGURES_P, exist_ok=True)
 RESULTS_DIR = "results"
 os.makedirs(FIGURES_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
-
 # =========================
 # GLOBAL STORAGE (CONTINUOUS)
 # =========================
@@ -92,7 +51,7 @@ all_obs = []
 # =============================================================================
 GLOBAL_THRESHOLD = 1e-6
 TOP_N_RESULTS    = 2
-POLY_DEGREE      = 2
+POLY_DEGREE      = 1
 MAX_COEFFICIENT  = 100000.0  # Maximum absolute value allowed for any coefficient
 
 MIN_FOLDS     = 2
@@ -119,7 +78,7 @@ INTERVAL_CONFIGS = {
     (467, 473): {'cutoff': 0.05, 'order': 1},
     (473, 480): {'cutoff': 0.05, 'order': 2},
     (480, 483): {'cutoff': 0.10, 'order': 1},
-    (483, 488): {'cutoff': 0.10, 'order': 2},
+    (483, 488): {'cutoff': 0.10, 'order': 1},
 
 }
 
@@ -318,12 +277,12 @@ def analyze_coefficients(model, variable_names, start_age, end_age, save=True):
         # Check if any coefficients hit the limit
         near_limit = df_coef[df_coef['abs_value'] > 0.9 * MAX_COEFFICIENT]
         if not near_limit.empty:
-            print(f"{len(near_limit)} coefficients near the limit ({MAX_COEFFICIENT})")
+            print(f"    ⚠️  {len(near_limit)} coefficients near the limit ({MAX_COEFFICIENT})")
 
         if save:
             coef_file = os.path.join(RESULTS_DIR, f'coefficients_{start_age}_{end_age}Ma.csv')
             df_coef.to_csv(coef_file, index=False)
-            print(f"Coefficients saved to: {coef_file}")
+            print(f"    ✅ Coefficients saved to: {coef_file}")
 
         return df_coef
 
@@ -526,7 +485,7 @@ def save_unseen_r2_results(all_fold_results, top_results, start_age, end_age, in
             # Save all UNSEEN results
             all_unseen_file = os.path.join(RESULTS_DIR, f'all_unseen_r2_{start_age}_{end_age}Ma.csv')
             df_all_folds.to_csv(all_unseen_file, index=False)
-            print(f"\n Saved ALL UNSEEN R² results ({len(valid_folds)} folds) to: {all_unseen_file}")
+            print(f"\n  ✅ Saved ALL UNSEEN R² results ({len(valid_folds)} folds) to: {all_unseen_file}")
 
     # Save top N results (best UNSEEN performance)
     if top_results:
@@ -543,15 +502,15 @@ def save_unseen_r2_results(all_fold_results, top_results, start_age, end_age, in
         # Save top UNSEEN results
         top_unseen_file = os.path.join(RESULTS_DIR, f'top{TOP_N_RESULTS}_unseen_r2_{start_age}_{end_age}Ma.csv')
         df_top.to_csv(top_unseen_file, index=False)
-        print(f"Saved TOP {len(top_results)} UNSEEN R² results to: {top_unseen_file}")
+        print(f"  ✅ Saved TOP {len(top_results)} UNSEEN R² results to: {top_unseen_file}")
 
         # Also save a summary of just the R² values
         r2_summary = {
             'interval': f"{start_age}-{end_age}",
             'best_unseen_r2': float(top_results[0]['r2_overall']),
             'best_unseen_r2_raw': float(top_results[0].get('r2_overall_raw', np.nan)),
-            'avg_unseen_r2': float(np.mean([r['r2_overall_raw'] for r in top_results])),
-            'std_unseen_r2': float(np.std([r['r2_overall_raw'] for r in top_results])),
+            'avg_unseen_r2': float(np.mean([r['r2_overall'] for r in top_results])),
+            'std_unseen_r2': float(np.std([r['r2_overall'] for r in top_results])),
             'best_toc_r2': float(top_results[0].get('toc_r2', np.nan)),
             'best_pyrite_r2': float(top_results[0].get('pyrite_r2', np.nan)),
             'best_p_r2': float(top_results[0].get('p_r2', np.nan)),
@@ -566,7 +525,7 @@ def save_unseen_r2_results(all_fold_results, top_results, start_age, end_age, in
         r2_json_file = os.path.join(RESULTS_DIR, f'unseen_r2_summary_{start_age}_{end_age}Ma.json')
         with open(r2_json_file, 'w') as f:
             json.dump(r2_summary, f, indent=2)
-        print(f"Saved UNSEEN R² summary JSON to: {r2_json_file}")
+        print(f"  ✅ Saved UNSEEN R² summary JSON to: {r2_json_file}")
 
         return r2_summary
 
@@ -607,7 +566,7 @@ def plot_seen_vs_unseen_performance(
         # =========================
         if cv_results and len(cv_results) > 0:
 
-            best_idx = np.argmax([r['r2_overall_raw'] for r in cv_results])
+            best_idx = np.argmax([r['r2_overall'] for r in cv_results])
 
             t_val, sim_val = cv_predictions[best_idx]
             unseen_r2 = float(cv_results[best_idx].get(f'{key}_r2', 0))
@@ -819,7 +778,7 @@ def apply_butterworth_and_sindy_with_cv(cutoff, order, start_age, end_age, n_spl
         cv_models.append(model)
 
         if was_clipped:
-            print(f"Coefficients were clipped to max {MAX_COEFFICIENT}")
+            print(f"  ⚠️  Coefficients were clipped to max {MAX_COEFFICIENT}")
 
         try:
             # Simulate validation period
@@ -883,16 +842,16 @@ def apply_butterworth_and_sindy_with_cv(cutoff, order, start_age, end_age, n_spl
 
     # Select top-N results based on UNSEEN performance
     valid_results = [r for r in all_fold_results if r['rmse'] != np.inf]
-    valid_results.sort(key=lambda x: (-x['r2_overall_raw'], x['rmse_raw']))
+    valid_results.sort(key=lambda x: (-x['r2_overall'], x['rmse']))
     top_results = valid_results[:min(TOP_N_RESULTS, len(valid_results))]
 
     print(f"\n{'─'*50}")
     print(f"TOP {len(top_results)} RESULTS (ranked by UNSEEN performance)")
     print(f"{'─'*50}")
     for i, r in enumerate(top_results):
-        print(f"  Rank {i+1} (Fold {r['fold']}): UNSEEN R²={r['r2_overall_raw']:.4f}")
+        print(f"  Rank {i+1} (Fold {r['fold']}): UNSEEN R²={r['r2_overall']:.4f}")
     best_result = top_results[0]
-    print(f"  → UNSEEN RMSE = {best_result['rmse_raw']:.4f}")
+    print(f"  → UNSEEN RMSE = {best_result['rmse']:.4f}")
 
     if not top_results:
         print("No valid CV results — falling back to full-data fit")
@@ -918,7 +877,7 @@ def apply_butterworth_and_sindy_with_cv(cutoff, order, start_age, end_age, n_spl
     final_model, was_clipped = fit_with_coef_limit(final_model, X_smooth_norm, t=t, ensemble=True)
 
     if was_clipped:
-        print(f"Final model coefficients were clipped to max {MAX_COEFFICIENT}")
+        print(f"  ⚠️  Final model coefficients were clipped to max {MAX_COEFFICIENT}")
 
     # Analyze coefficients
     coef_df = analyze_coefficients(final_model, variable_names, start_age, end_age)
@@ -968,23 +927,18 @@ def apply_butterworth_and_sindy_with_cv(cutoff, order, start_age, end_age, n_spl
     print("FINAL PERFORMANCE SUMMARY")
     print(f"{'─'*50}")
     print(f"SEEN data (in-sample) R² = {insample_smooth['r2_overall']:.4f}")
-    print(f"UNSEEN R² (filtered) = {best_result['r2_overall']:.4f}")
-    print(f"UNSEEN R² (raw) = {best_result['r2_overall_raw']:.4f}")
-    avg_filtered = np.mean([r['r2_overall'] for r in top_results])
-    avg_raw = np.mean([r['r2_overall_raw'] for r in top_results])
-
-    print(f"UNSEEN R² (filtered avg) = {avg_filtered:.4f}")
-    print(f"UNSEEN R² (raw avg) = {avg_raw:.4f}")
+    print(f"UNSEEN data (best CV) R² = {best_result['r2_overall']:.4f}")
+    print(f"UNSEEN data (avg CV) R² = {np.mean([r['r2_overall'] for r in top_results]):.4f}")
     print(f"SEEN RMSE = {insample_smooth['rmse']:.4f}")
     print(f"UNSEEN RMSE = {best_result['rmse']:.4f}")
 
     overfit_gap = float(insample_smooth['r2_overall'] - best_result['r2_overall'])
     if overfit_gap > 0.1:
-        print(f"OVERFITTING WARNING: Gap = {overfit_gap:.3f} (> 0.1)")
+        print(f"⚠️  OVERFITTING WARNING: Gap = {overfit_gap:.3f} (> 0.1)")
     elif overfit_gap > 0.05:
-        print(f"Moderate overfitting: Gap = {overfit_gap:.3f}")
+        print(f"⚠️  Moderate overfitting: Gap = {overfit_gap:.3f}")
     else:
-        print(f"Good generalization: Gap = {overfit_gap:.3f}")
+        print(f"✅ Good generalization: Gap = {overfit_gap:.3f}")
 
     # Create SEEN vs UNSEEN visualization
     plot_seen_vs_unseen_performance(
@@ -1001,7 +955,7 @@ def apply_butterworth_and_sindy_with_cv(cutoff, order, start_age, end_age, n_spl
     simulated,
     start_age,
     end_age,
-    insample_raw,
+    insample_smooth,
     variable_names
 )
 
@@ -1016,15 +970,14 @@ def apply_butterworth_and_sindy_with_cv(cutoff, order, start_age, end_age, n_spl
         'seen_toc_r2': float(insample_smooth.get('toc_r2', 0)),
         'seen_pyrite_r2': float(insample_smooth.get('pyrite_r2', 0)),
         'seen_p_r2': float(insample_smooth.get('p_r2', 0)),
-        'best_unseen_r2_filtered': float(best_result['r2_overall']),
-        'best_unseen_r2_raw': float(best_result['r2_overall_raw']),
+        'best_unseen_r2': float(best_result['r2_overall']),
         'seen_rmse': float(insample_smooth['rmse']),
         'best_unseen_rmse': float(best_result['rmse']),
         'best_unseen_toc_r2': float(best_result.get('toc_r2', 0)),
         'best_unseen_pyrite_r2': float(best_result.get('pyrite_r2', 0)),
         'best_unseen_p_r2': float(best_result.get('p_r2', 0)),
-        'avg_unseen_r2': float(np.mean([r['r2_overall_raw'] for r in top_results])),
-        'std_unseen_r2': float(np.std([r['r2_overall_raw'] for r in top_results])),
+        'avg_unseen_r2': float(np.mean([r['r2_overall'] for r in top_results])),
+        'std_unseen_r2': float(np.std([r['r2_overall'] for r in top_results])),
         'overfit_gap': float(overfit_gap),
         'outlier_method': OUTLIER_METHOD,
         'filter_cutoff': cutoff,
@@ -1036,7 +989,7 @@ def apply_butterworth_and_sindy_with_cv(cutoff, order, start_age, end_age, n_spl
 
     comp_file = os.path.join(RESULTS_DIR, f'comprehensive_results_{start_age}_{end_age}Ma.csv')
     pd.DataFrame([comprehensive_results]).to_csv(comp_file, index=False)
-    print(f"Saved comprehensive results to: {comp_file}")
+    print(f"  ✅ Saved comprehensive results to: {comp_file}")
 
     return final_model, top_results, insample_smooth, unseen_summary, t, simulated, grouped_data
 
@@ -1052,7 +1005,7 @@ def fit_full_dataset(t, X_smooth_norm, X_raw, X_smooth,
     final_model, was_clipped = fit_with_coef_limit(final_model, X_smooth_norm, t=t, ensemble=True)
 
     if was_clipped:
-        print(f"Coefficients were clipped to max {MAX_COEFFICIENT}")
+        print(f"  ⚠️  Coefficients were clipped to max {MAX_COEFFICIENT}")
 
     print(f"\nEquations | {start_age}-{end_age} Ma:")
     final_model.print()
@@ -1116,11 +1069,11 @@ def summarize_all_results(all_results, all_unseen_summaries):
         if top_results and insample:
             best = top_results[0]
             # Convert to float to avoid numpy type issues
-            avg_unseen = float(np.mean([r['r2_overall_raw'] for r in top_results]))
-            std_unseen = float(np.std([r['r2_overall_raw'] for r in top_results]))
-            gap = float(insample['r2_overall'] - best['r2_overall_raw'])
+            avg_unseen = float(np.mean([r['r2_overall'] for r in top_results]))
+            std_unseen = float(np.std([r['r2_overall'] for r in top_results]))
+            gap = float(insample['r2_overall'] - best['r2_overall'])
 
-            status = "GOOD" if gap <= 0.05 else " WARNING" if gap <= 0.1 else " OVERFIT"
+            status = "✅ GOOD" if gap <= 0.05 else "⚠️ WARNING" if gap <= 0.1 else "❌ OVERFIT"
 
             # Try to get coefficient info from comprehensive results file
             coef_info = ""
@@ -1139,7 +1092,7 @@ def summarize_all_results(all_results, all_unseen_summaries):
                 'Interval': f"{start_age}-{end_age} Ma",
                 'Points': len(t) if 't' in locals() else 0,
                 'SEEN_R²': round(float(insample['r2_overall']), 4),
-                'BEST_UNSEEN_R²': round(float(best['r2_overall_raw']), 4),
+                'BEST_UNSEEN_R²': round(float(best['r2_overall']), 4),
                 'SEEN_RMSE': round(float(insample.get('rmse', np.nan)), 4),
                 'UNSEEN_RMSE': round(float(best.get('rmse', np.nan)), 4),
                 'AVG_UNSEEN_R²': round(avg_unseen, 4),
@@ -1166,14 +1119,14 @@ def summarize_all_results(all_results, all_unseen_summaries):
 
         summary_file = os.path.join(RESULTS_DIR, 'summary_all_intervals_seen_vs_unseen.csv')
         summary_df.to_csv(summary_file, index=False)
-        print(f"\nSaved summary to: {summary_file}")
+        print(f"\n✅ Saved summary to: {summary_file}")
 
         # Save combined unseen R² data
         if all_unseen_data:
             unseen_df = pd.DataFrame(all_unseen_data)
             unseen_file = os.path.join(RESULTS_DIR, 'all_intervals_unseen_r2_summary.csv')
             unseen_df.to_csv(unseen_file, index=False)
-            print(f"Saved combined UNSEEN R² data to: {unseen_file}")
+            print(f"✅ Saved combined UNSEEN R² data to: {unseen_file}")
 
         # Create overall visualization
         plot_overall_summary(summary_df)
@@ -1188,7 +1141,7 @@ def summarize_all_results(all_results, all_unseen_summaries):
                 'best_interval': max(summary_data, key=lambda x: x['BEST_UNSEEN_R²']) if summary_data else None,
                 'worst_interval': min(summary_data, key=lambda x: x['BEST_UNSEEN_R²']) if summary_data else None,
             }, f, indent=2, default=str)
-        print(f"Saved JSON summary to: {json_file}")
+        print(f"✅ Saved JSON summary to: {json_file}")
 
 def plot_overall_summary(summary_df):
     """Create overall summary plot across intervals."""
@@ -1278,13 +1231,14 @@ def export_individual_variable_plots(
         r2 = float(insample_metrics.get(f'{key}_r2', 0))
 
         plt.title(
-            f"{label} ({start_age}–{end_age} Ma)",
+            f"{label} ({start_age}–{end_age} Ma)\n$R^2$ = {r2:.3f}",
             fontsize=14
         )
 
         plt.xlabel("Age (Ma)", fontsize=12)
         plt.ylabel(label, fontsize=12)
 
+        # 🔥 MELHORIA REAL AQUI
 
         ax = plt.gca()
 
@@ -1317,7 +1271,8 @@ def export_individual_variable_plots(
         fname = os.path.join(save_dir, f"{key}_up_clean_{start_age}_{end_age}.png")
         plt.savefig(fname, dpi=300, bbox_inches='tight')
         plt.close()
-        print(f"CLEAN plot saved for {label}")
+
+        print(f"  ✅ CLEAN plot saved for {label}")
 def smooth_transitions(t, sim, window=3):
     sim_smooth = sim.copy()
 
@@ -1333,6 +1288,7 @@ def plot_continuous_dynamics(t, obs, sim):
     labels = ['TOC', 'FePy/FeHR', 'Phosphorus']
     colors = ['steelblue', 'firebrick', 'forestgreen']
 
+    # 🔥 CRIA UMA ÚNICA FIGURA COM 3 SUBPLOTS
     fig, axes = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
 
     for i, (label, color) in enumerate(zip(labels, colors)):
@@ -1378,7 +1334,7 @@ def plot_continuous_dynamics(t, obs, sim):
     save_path = os.path.join(FIGURES_DIR, "continuous_all_variables.svg")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
-    print(f"Continuous combined figure saved to {save_path}")
+    print(f"  ✅ Continuous combined figure saved to {save_path}")
 
     plt.show()
 
@@ -1440,10 +1396,9 @@ def plot_continuous_same_axis(t, obs, sim):
     save_path = os.path.join(FIGURES_DIR, "continuous_same_axis.svg")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
-    print(f"Same-axis figure saved to {save_path}")
+    print(f"  ✅ Same-axis figure saved to {save_path}")
 
     plt.show()
-
 def plot_continuous_publication_style(t, obs, sim):
 
     labels = ['TOC', 'FePy/FeHR', 'Phosphorus']
@@ -1468,115 +1423,15 @@ def plot_continuous_publication_style(t, obs, sim):
     # EVENTOS GEOLÓGICOS
     # =========================
 
-    # =========================
-# STAGES ORDOVICIANOS
-# =========================
+    ax.axvspan(468, 472, color='red', alpha=0.15)
+    ax.axvline(470, color='black', linestyle='--', linewidth=1)
+    ax.text(470, ax.get_ylim()[1]*0.9, 'GOBE MAIN PHASE',
+            rotation=90, ha='center', fontsize=9)
 
-    stages = [
-    ("Cambrian", 490.0, 485.4, "#D9D9D9"),
+    ax.axvspan(444, 447, color='cyan', alpha=0.15)
 
-    ("Tremadocian", 485.4, 477.7, "#8CC63F"),
-    ("Floian", 477.7, 470.0, "#7FBF3F"),
-
-    ("Dapingian", 470.0, 467.3, "#F2D03B"),
-    ("Darriwilian", 467.3, 458.4, "#F5B335"),
-
-    ("Sandbian", 458.4, 453.0, "#F08A24"),
-    ("Katian", 453.0, 445.2, "#E66101"),
-
-    ("Hirnantian", 445.2, 443.8, "#B22222"),
-
-    ("Silurian", 443.8, 440.0, "#984EA3"),
-]
-
-    ymin, ymax = ax.get_ylim()
-
-    for name, start, end, color in stages:
-
-        ax.axvspan(
-            start,
-            end,
-            ymin=0.94,
-            ymax=1.00,
-            color=color,
-            alpha=0.85,
-            linewidth=0
-        )
-
-        ax.text(
-            (start + end) / 2,
-            ymax * 0.985,
-            name,
-            ha='center',
-            va='top',
-            fontsize=8,
-            fontweight='bold'
-        )
-
-# =========================
-# GOBE
-# =========================
-
-    ax.axvspan(458, 470, color='red', alpha=0.08)
-
-    ax.axvline(
-    467.8,
-    color='black',
-    linestyle='--',
-    linewidth=1.2
-    )
-
-    ax.text(
-    467.8,
-    ymax * 0.78,
-    'GOBE MAIN PHASE',
-    rotation=90,
-    ha='center',
-    fontsize=7,
-    fontweight='bold'
-    )
-
-    # =========================
-    # TACONIC OROGENY
-    # =========================
-
-    ax.axvspan(
-    470,
-    445,
-    color='saddlebrown',
-    alpha=0.05
-    )
-
-    ax.text(
-    458,
-    ymax * 0.70,
-    'Taconic Orogeny (465–440 Ma)',
-    fontsize=10,
-    color='black',
-    ha='center',
-    fontweight='bold'
-    )
-
-    # =========================
-    # LOME
-    # =========================
-
-    ax.axvspan(
-    443.8,
-    445.5,
-    color='cyan',
-    alpha=0.12
-    )
-
-    ax.text(
-    444.7,
-    ymax * 0.92,
-    'LOME',
-    fontsize=10,
-    fontweight='bold',
-    color='darkcyan',
-    ha='center'
-    )
+    ax.text(472, ax.get_ylim()[1]*0.7,
+            'Taconic Orogeny (465–440 Ma)', fontsize=9)
 
     # =========================
     # LINHAS DE INTERVALO
@@ -1600,7 +1455,7 @@ def plot_continuous_publication_style(t, obs, sim):
     ax.set_ylabel("Concentration")
     ax.grid(True, alpha=0.2)
 
-    plt.title("Observed and Simulated Ordovician Biogeochemical Dynamics",
+    plt.title("Continuous Biogeochemical Dynamics (Ordovician)",
               fontsize=14, fontweight='bold')
 
     ax.legend(loc='upper right', fontsize=9)
@@ -1613,7 +1468,7 @@ def plot_continuous_publication_style(t, obs, sim):
     save_path = os.path.join(FIGURES_DIR, "new_figure_paper_style.svg")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
-    print(f"Figure saved to {save_path}")
+    print(f"  ✅ Figure saved to {save_path}")
 
     plt.show()
 
@@ -1670,7 +1525,7 @@ def plot_paper_figure(t, obs, sim):
     save_path = os.path.join(FIGURES_DIR, "paper_figure_multiplot.svg")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
-    print(f" PAPER FIGURE saved to {save_path}")
+    print(f"  ✅ PAPER FIGURE saved to {save_path}")
 
     plt.show()
 # =============================================================================
@@ -1719,7 +1574,7 @@ if __name__ == "__main__":
         all_results[(start_age, end_age)] = result
 
         # Collect unseen summary if available
-        if len(result) >= 4 and result[3] is not None:
+        if len(result) == 4 and result[3] is not None:
             all_unseen_summaries.append(result[3])
 
     # Generate comprehensive summary
@@ -1787,19 +1642,19 @@ if __name__ == "__main__":
         master_unseen_df = pd.concat(all_folds_dfs, ignore_index=True)
         master_file = os.path.join(RESULTS_DIR, 'master_all_unseen_r2_results.csv')
         master_unseen_df.to_csv(master_file, index=False)
-        print(f"Created master file with ALL unseen R² results: {master_file}")
-        print(f"Total folds across all intervals: {len(master_unseen_df)}")
+        print(f"✅ Created master file with ALL unseen R² results: {master_file}")
+        print(f"   Total folds across all intervals: {len(master_unseen_df)}")
 
         # Print summary statistics
         print(f"\nOverall UNSEEN R² statistics:")
-        print(f"  Mean R²: {master_unseen_df['r2_overall_raw'].mean():.4f}")
-        print(f"  Std R²: {master_unseen_df['r2_overall_raw'].std():.4f}")
-        print(f"  Min R²: {master_unseen_df['r2_overall_raw'].min():.4f}")
-        print(f"  Max R²: {master_unseen_df['r2_overall_raw'].max():.4f}")
+        print(f"  Mean R²: {master_unseen_df['r2_overall'].mean():.4f}")
+        print(f"  Std R²: {master_unseen_df['r2_overall'].std():.4f}")
+        print(f"  Min R²: {master_unseen_df['r2_overall'].min():.4f}")
+        print(f"  Max R²: {master_unseen_df['r2_overall'].max():.4f}")
 
     print(f"\n{'='*90}")
     print(f"ANALYSIS COMPLETE!")
-    print(f"All UNSEEN data R² results saved in: {os.path.abspath(RESULTS_DIR)}/")
-    print(f"Figures saved in: {os.path.abspath(FIGURES_DIR)}/")
-    print(f"Coefficient limits enforced: |coef| ≤ {MAX_COEFFICIENT}")
+    print(f"✅ All UNSEEN data R² results saved in: {os.path.abspath(RESULTS_DIR)}/")
+    print(f"✅ Figures saved in: {os.path.abspath(FIGURES_DIR)}/")
+    print(f"✅ Coefficient limits enforced: |coef| ≤ {MAX_COEFFICIENT}")
     print(f"{'='*90}")
